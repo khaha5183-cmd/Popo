@@ -1,7 +1,7 @@
 {
-  "name": "openai-nim-proxy",
+  "name": "Popo",
   "version": "1.0.0",
-  "description": "OpenAI compatible proxy for NVIDIA NIM API",
+  "description": "Lk",
   "main": "server.js",
   "scripts": {
     "start": "node server.js"
