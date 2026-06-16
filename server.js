@@ -197,6 +197,18 @@ app.post('/v1/chat/completions', async (req, res) => {
 });
 
 // Catch-all for unsupported endpoints
+app.get('/', (req, res) => {
+  res.json({
+    status: 'ok',
+    service: 'OpenAI to NVIDIA NIM Proxy',
+    endpoints: [
+      '/health',
+      '/v1/models',
+      '/v1/chat/completions'
+    ]
+  });
+});
+
 app.all('*', (req, res) => {
   res.status(404).json({
     error: {
