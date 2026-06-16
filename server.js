@@ -20,6 +20,17 @@ const SHOW_REASONING = false; // Set to true to show reasoning with <think> tags
 // 🔥 THINKING MODE TOGGLE - Enables thinking for specific models that support it
 const ENABLE_THINKING_MODE = false; // Set to true to enable chat_template_kwargs thinking parameter
 
+// Model mapping (adjust based on available NIM models)
+const MODEL_MAPPING = {
+  'gpt-3.5-turbo': 'nvidia/llama-3.1-nemotron-ultra-253b-v1',
+  'gpt-4': 'qwen/qwen3-coder-480b-a35b-instruct',
+  'gpt-4-turbo': 'moonshotai/kimi-k2-instruct-0905',
+  'gpt-4o': 'deepseek-ai/deepseek-v3.1',
+  'claude-3-opus': 'openai/gpt-oss-120b',
+  'claude-3-sonnet': 'openai/gpt-oss-20b',
+  'gemini-pro': 'qwen/qwen3-next-80b-a3b-thinking' 
+};
+
 // Health check endpoint
 app.get('/health', (req, res) => {
   res.json({ 
@@ -31,36 +42,18 @@ app.get('/health', (req, res) => {
 });
 
 // List models endpoint (OpenAI compatible)
-app.get('/v1/models', async (req, res) => {
-  try {
-    const response = await axios.get(
-      `${NIM_API_BASE}/models`,
-      {
-        headers: {
-          Authorization: `Bearer ${NIM_API_KEY}`
-        }
-      }
-    );
-
-    const models = response.data.data.map(model => ({
-      id: model.id,
-      object: 'model',
-      created: Math.floor(Date.now() / 1000),
-      owned_by: 'nvidia'
-    }));
-
-    res.json({
-      object: 'list',
-      data: models
-    });
-
-  } catch (error) {
-    res.status(500).json({
-      error: {
-        message: error.message
-      }
-    });
-  }
+app.get('/v1/models', (req, res) => {
+  const models = Object.keys(MODEL_MAPPING).map(model => ({
+    id: model,
+    object: 'model',
+    created: Date.now(),
+    owned_by: 'nvidia-nim-proxy'
+  }));
+  
+  res.json({
+    object: 'list',
+    data: models
+  });
 });
 
 // Chat completions endpoint (main proxy)
@@ -69,8 +62,34 @@ app.post('/v1/chat/completions', async (req, res) => {
     const { model, messages, temperature, max_tokens, stream } = req.body;
     
     // Smart model selection with fallback
-    const nimModel =
-  model || 'deepseek-ai/deepseek-v3.1';
+    let nimModel = MODEL_MAPPING[model];
+    if (!nimModel) {
+      try {
+        await axios.post(`${NIM_API_BASE}/chat/completions`, {
+          model: model,
+          messages: [{ role: 'user', content: 'test' }],
+          max_tokens: 1
+        }, {
+          headers: { 'Authorization': `Bearer ${NIM_API_KEY}`, 'Content-Type': 'application/json' },
+          validateStatus: (status) => status < 500
+        }).then(res => {
+          if (res.status >= 200 && res.status < 300) {
+            nimModel = model;
+          }
+        });
+      } catch (e) {}
+      
+      if (!nimModel) {
+        const modelLower = model.toLowerCase();
+        if (modelLower.includes('gpt-4') || modelLower.includes('claude-opus') || modelLower.includes('405b')) {
+          nimModel = 'meta/llama-3.1-405b-instruct';
+        } else if (modelLower.includes('claude') || modelLower.includes('gemini') || modelLower.includes('70b')) {
+          nimModel = 'meta/llama-3.1-70b-instruct';
+        } else {
+          nimModel = 'meta/llama-3.1-8b-instruct';
+        }
+      }
+    }
     
     // Transform OpenAI request to NIM format
     const nimRequest = {
@@ -207,27 +226,7 @@ app.post('/v1/chat/completions', async (req, res) => {
   }
 });
 
-// Root endpoint
-app.get('/', (req, res) => {
-  res.json({
-    status: 'ok',
-    service: 'NVIDIA NIM Proxy'
-  });
-});
-
 // Catch-all for unsupported endpoints
-app.get('/', (req, res) => {
-  res.json({
-    status: 'ok',
-    service: 'OpenAI to NVIDIA NIM Proxy',
-    endpoints: [
-      '/health',
-      '/v1/models',
-      '/v1/chat/completions'
-    ]
-  });
-});
-
 app.all('*', (req, res) => {
   res.status(404).json({
     error: {
