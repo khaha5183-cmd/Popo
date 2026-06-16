@@ -207,6 +207,14 @@ app.post('/v1/chat/completions', async (req, res) => {
   }
 });
 
+// Root endpoint
+app.get('/', (req, res) => {
+  res.json({
+    status: 'ok',
+    service: 'NVIDIA NIM Proxy'
+  });
+});
+
 // Catch-all for unsupported endpoints
 app.get('/', (req, res) => {
   res.json({
