@@ -103,23 +103,23 @@ async function handleChat(req, res) {
 
   } catch (error) {
 
-    console.error(
-      'NIM ERROR:',
-      error.response?.data ||
-      error.message
-    );
+  console.error(
+    'STATUS:',
+    error.response?.status
+  );
 
-    res.status(
-      error.response?.status || 500
-    ).json(
-      error.response?.data || {
-        error: {
-          message: error.message
-        }
-      }
-    );
-  }
-}
+  console.error(
+    'DATA:',
+    JSON.stringify(
+      error.response?.data,
+      null,
+      2
+    )
+  );
+
+  res.status(
+    error.response?.status || 500
+  ).json(
 
 // OpenAI endpoint
 app.post('/v1/chat/completions', handleChat);
