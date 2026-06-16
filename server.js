@@ -228,6 +228,31 @@ app.get('/', (req, res) => {
   });
 });
 
+app.post('/', async (req, res) => {
+  try {
+    const response = await axios.post(
+      `${NIM_API_BASE}/chat/completions`,
+      req.body,
+      {
+        headers: {
+          Authorization: `Bearer ${NIM_API_KEY}`,
+          'Content-Type': 'application/json'
+        }
+      }
+    );
+
+    res.json(response.data);
+  } catch (error) {
+    res.status(error.response?.status || 500).json(
+      error.response?.data || {
+        error: {
+          message: error.message
+        }
+      }
+    );
+  }
+});
+
 app.all('*', (req, res) => {
   res.status(404).json({
     error: {
