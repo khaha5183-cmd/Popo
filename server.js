@@ -42,7 +42,18 @@ app.get('/v1/models', async (req, res) => {
       }
     );
 
-    res.json(response.data);
+    const models = response.data.data.map(model => ({
+      id: model.id,
+      object: 'model',
+      created: Math.floor(Date.now() / 1000),
+      owned_by: 'nvidia'
+    }));
+
+    res.json({
+      object: 'list',
+      data: models
+    });
+
   } catch (error) {
     res.status(500).json({
       error: {
