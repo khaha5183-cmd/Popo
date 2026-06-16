@@ -58,7 +58,8 @@ app.post('/v1/chat/completions', async (req, res) => {
     const { model, messages, temperature, max_tokens, stream } = req.body;
     
     // Smart model selection with fallback
-    const nimModel = model;
+    const nimModel =
+  model || 'deepseek-ai/deepseek-v3.1';
     
     // Transform OpenAI request to NIM format
     const nimRequest = {
